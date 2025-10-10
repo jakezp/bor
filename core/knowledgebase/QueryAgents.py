@@ -6,29 +6,37 @@ import os
 from pathlib import Path
 
 from langchain.agents import Tool, initialize_agent, AgentType
-from langchain.chat_models import ChatOpenAI
+from langchain_aws import ChatBedrock
 
 from langchain.prompts import MessagesPlaceholder, PromptTemplate
 from langchain.memory import ConversationBufferMemory
-from langchain.schema import SystemMessage
+from langchain_core.messages import SystemMessage
 
 from core.knowledgebase import constants
+from core.knowledgebase.AWSAuth import AWSAuthenticator
 from core.knowledgebase.MemgraphManager import MemgraphManager
 from core.knowledgebase.notes.Searcher import Searcher
 
 
 class GeneralQueryAgent:
-    def __init__(self: GeneralQueryAgent, repo_path: str, tools: List[Tool]) -> None:
+    def __init__(self, repo_path: str, tools: List[Tool]) -> None:
 
         self.repo_path = repo_path
 
         self.system_message = ''
         self._init_system_message()
 
-        self.llm = ChatOpenAI(
-            temperature=constants.LLM_MODEL_TEMPERATURE,
-            openai_api_key=constants.OPENAI_API_KEY,
-            model_name=constants.LLM_MODEL_NAME
+        # Get AWS Bedrock client
+        authenticator = AWSAuthenticator()
+        bedrock_runtime = authenticator.get_bedrock_runtime_client()
+        
+        self.llm = ChatBedrock(
+            model=constants.BEDROCK_MODEL_ID,
+            client=bedrock_runtime,
+            model_kwargs={
+                "temperature": constants.LLM_MODEL_TEMPERATURE,
+                "max_tokens": 4096
+            }
         )
 
         self.agent_kwargs = {
@@ -53,7 +61,7 @@ class GeneralQueryAgent:
 
         return
 
-    def _init_agent(self: GeneralQueryAgent, tools: List[Tool]) -> None:
+    def _init_agent(self, tools: List[Tool]) -> None:
         self.agent = initialize_agent(
             tools,
             self.llm,
@@ -65,7 +73,7 @@ class GeneralQueryAgent:
 
         return
 
-    def _init_system_message(self: GeneralQueryAgent) -> None:
+    def _init_system_message(self) -> None:
         prompt_name = 'system_message_query'
         prompt_path = Path(os.path.join(
             os.path.dirname(__file__), 'prompts', prompt_name))
@@ -79,13 +87,13 @@ class GeneralQueryAgent:
 
         return
 
-    def ask(self: GeneralQueryAgent, question: str) -> str:
+    def ask(self, question: str) -> str:
         return self.agent.run(question)
 
 
 class NotesQueryAgent(GeneralQueryAgent):
 
-    def __init__(self: NotesQueryAgent, repo_path: str) -> None:
+    def __init__(self, repo_path: str) -> None:
 
         self.searcher = Searcher(repo_path)
 
@@ -111,7 +119,7 @@ class NotesQueryAgent(GeneralQueryAgent):
 
 class CodeQueryAgent(GeneralQueryAgent):
 
-    def __init__(self: CodeQueryAgent, repo_path: str) -> None:
+    def __init__(self, repo_path: str) -> None:
 
         read_file = Tool.from_function(
             func=lambda p: Path(p).read_text(),

@@ -16,7 +16,7 @@ ENV OPENSSL_ROOT_DIR=/opt/conda
 ################# BUILDING PYMGCLIENT ############################
 
 # Create a conda environment
-RUN conda create -n bor_env python=3.9.16
+RUN conda create -n bor_env python=3.12.11
 
 # Activate the conda environment
 SHELL ["conda", "run", "-n", "bor_env", "/bin/bash", "-c"]

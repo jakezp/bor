@@ -1,4 +1,5 @@
 from typing import Union, List
+import logging
 
 from enum import Enum
 from core.knowledgebase.Utils import Utils
@@ -11,6 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from core.knowledgebase import constants
+from core.knowledgebase.AWSAuth import AWSAuthenticator
 
 from core.knowledgebase.Initializer import Initializer
 from core.knowledgebase.MemgraphManager import MemgraphManager
@@ -23,6 +25,10 @@ from core.knowledgebase.notes.Searcher import Searcher
 
 from core.knowledgebase.code.APIRepoManager import APIRepoManager
 from core.knowledgebase.code.LocalRepoManager import LocalRepoManager
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 class Type(Enum):
@@ -76,7 +82,19 @@ ta = TextAnalizer()
 
 
 @app.on_event("startup")
-def startup() -> None:
+async def startup() -> None:
+    # Log AWS authentication method being used
+    try:
+        authenticator = AWSAuthenticator()
+        auth_method = authenticator.get_auth_method()
+        logger.info(f"🔐 AWS Bedrock Authentication: {auth_method}")
+        logger.info(f"🌍 Bedrock Region: {constants.BEDROCK_REGION}")
+        logger.info(f"🤖 Bedrock Model: {constants.BEDROCK_MODEL_ID}")
+        logger.info(f"📊 Embedding Model: {constants.BEDROCK_EMBEDDING_MODEL}")
+    except Exception as e:
+        logger.error(f"❌ AWS Authentication Error: {e}")
+    
+    # Initialize mock data if needed
     if constants.MOCK and mm.check_if_db_empty():
         Initializer.init_vault_mock_data()
     return
@@ -188,12 +206,15 @@ def update_file(file: File) -> None:
     mm.delete_graph_for_file(file.path)
     cm.delete_file(file.path)
 
+    file_content = file.content or ""
+    data_str = str(data) if data else ""
+    
     if isinstance(data, list) and len(data) == 0:
         res_queries = ta.text_to_cypher_create(
-            file.content, repo_path, file.path)
+            file_content, repo_path, file.path)
     else:
         res_queries = ta.data_and_text_to_cypher_update(
-            data, file.content, repo_path, file.path)
+            data_str, file_content, repo_path, file.path)
 
     mm.run_update_query(res_queries)
     cm.add_file(file.path)
@@ -216,12 +237,15 @@ def add_file(file: File) -> None:
 
     data = mm.export_data_for_repo_path(repo_path)
 
+    file_content = file.content or ""
+    data_str = str(data) if data else ""
+    
     if isinstance(data, list) and len(data) == 0:
         res_queries = ta.text_to_cypher_create(
-            file.content, repo_path, file.path)
+            file_content, repo_path, file.path)
     else:
         res_queries = ta.data_and_text_to_cypher_update(
-            data, file.content, repo_path, file.path)
+            data_str, file_content, repo_path, file.path)
 
     mm.run_update_query(res_queries)
     cm.add_file(file.path)

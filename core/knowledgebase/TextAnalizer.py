@@ -3,23 +3,31 @@ from __future__ import annotations
 from pathlib import Path
 import os
 
-from langchain import PromptTemplate
-from langchain.chat_models import ChatOpenAI
-from langchain.schema import (
+from langchain_core.prompts import PromptTemplate
+from langchain_aws import ChatBedrock
+from langchain_core.messages import (
     HumanMessage,
     SystemMessage
 )
 
 from core.knowledgebase import constants
+from core.knowledgebase.AWSAuth import AWSAuthenticator
 
 
 class TextAnalizer:
-    def __init__(self: TextAnalizer) -> None:
+    def __init__(self) -> None:
 
-        self.model = ChatOpenAI(
-            openai_api_key=constants.OPENAI_API_KEY,
-            temperature=constants.LLM_MODEL_TEMPERATURE,
-            model_name=constants.LLM_MODEL_NAME
+        # Get AWS Bedrock client
+        authenticator = AWSAuthenticator()
+        bedrock_runtime = authenticator.get_bedrock_runtime_client()
+        
+        self.model = ChatBedrock(
+            model=constants.BEDROCK_MODEL_ID,
+            client=bedrock_runtime,
+            model_kwargs={
+                "temperature": constants.LLM_MODEL_TEMPERATURE,
+                "max_tokens": 4096
+            }
         )
 
         self.prompt_names = [
@@ -37,7 +45,7 @@ class TextAnalizer:
 
         return
 
-    def init_prompts(self: TextAnalizer) -> None:
+    def init_prompts(self) -> None:
 
         for prompt_name in self.prompt_names:
             prompt_path = Path(os.path.join(
@@ -47,49 +55,53 @@ class TextAnalizer:
             self.prompts[prompt_name] = prompt_template
         return
 
-    def text_to_cypher_create(self: TextAnalizer, text: str, repo_path: str, file_path: str) -> str:
+    def text_to_cypher_create(self, text: str, repo_path: str, file_path: str) -> str:
         self.messages = [
             SystemMessage(
                 content=self.prompts['system_message_generate'].format()),
             HumanMessage(content=self.prompts['prompt_generate'].format(
                 prompt=text, repo_path=repo_path, file_path=file_path))
         ]
-        return self.model.predict_messages(self.messages).content
+        response = self.model.invoke(self.messages)
+        return str(response.content) if response.content else ""
 
-    def data_and_text_to_cypher_update(self: TextAnalizer, data: str, text: str, repo_path: str, file_path: str) -> str:
+    def data_and_text_to_cypher_update(self, data: str, text: str, repo_path: str, file_path: str) -> str:
         self.messages = [
             SystemMessage(
                 content=self.prompts['system_message_update'].format()),
             HumanMessage(content=self.prompts['prompt_update'].format(
                 data=data, prompt=text, repo_path=repo_path, file_path=file_path))
         ]
-        return self.model.predict_messages(self.messages).content
+        response = self.model.invoke(self.messages)
+        return str(response.content) if response.content else ""
 
-    def generate_questions(self: TextAnalizer, text: str) -> str:
+    def generate_questions(self, text: str) -> str:
         self.messages = [
             SystemMessage(
                 content=self.prompts['system_message_question'].format()),
             HumanMessage(
                 content=self.prompts['prompt_question'].format(prompt=text))
         ]
-        return self.model.predict_messages(self.messages).content
-
-    def _general_code_question(self: TextAnalizer, prompt_name: str, text: str) -> str:
+        response = self.model.invoke(self.messages)
+        return str(response.content) if response.content else ""
+    
+    def _general_code_question(self, prompt_name: str, text: str) -> str:
         self.messages = [
             SystemMessage(
                 content=self.prompts[f'system_message_{prompt_name}'].format()),
             HumanMessage(
                 content=self.prompts[f'prompt_{prompt_name}'].format(code=text))
         ]
-        return self.model.predict_messages(self.messages).content
-
-    def optimize_code_style(self: TextAnalizer, text: str) -> str:
+        response = self.model.invoke(self.messages)
+        return str(response.content) if response.content else ""
+    
+    def optimize_code_style(self, text: str) -> str:
         return self._general_code_question('optimize', text)
 
-    def explain_code(self: TextAnalizer, text: str) -> str:
+    def explain_code(self, text: str) -> str:
         return self._general_code_question('explain', text)
 
-    def debug_code(self: TextAnalizer, text: str) -> str:
+    def debug_code(self, text: str) -> str:
         return self._general_code_question('debug', text)
 
 
