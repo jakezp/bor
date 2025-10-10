@@ -305,7 +305,13 @@ def init_repo_from_api(remote_repo: RemoteRepo) -> None:
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "app://obsidian.md",
+        "http://localhost:*",
+        "http://127.0.0.1:*",
+        "https://localhost:*",
+        "*"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
