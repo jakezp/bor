@@ -167,3 +167,8 @@ cython_debug/
 node_modules/
 \n+# Local enhancement notes (keep local, do not commit)
 docs/BOR_enhancment/
+
+# Local data and dev state (do not commit)
+data/
+.serena/
+.roomodes
