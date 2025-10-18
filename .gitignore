@@ -163,3 +163,5 @@ cython_debug/
 #.idea/
 
 **/.obsidian/bor_aws_env/
+.DS_Store
+node_modules/
