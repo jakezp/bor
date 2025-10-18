@@ -162,4 +162,13 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 
-**/.obsidian/
+**/.obsidian/bor_aws_env/
+.DS_Store
+node_modules/
+\n+# Local enhancement notes (keep local, do not commit)
+docs/BOR_enhancment/
+
+# Local data and dev state (do not commit)
+data/
+.serena/
+.roomodes

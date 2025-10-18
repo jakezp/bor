@@ -1,3 +1,5 @@
+boto3
+botocore
 chromadb
 fastapi
 gitignore-parser
@@ -6,6 +8,8 @@ httpcore
 httptools
 httpx
 langchain
+langchain-aws
+langchain-core
 nltk
 openai
 pip
@@ -13,5 +17,7 @@ pip-requirements-parser
 pip-tools
 pydantic
 pyproject_hooks
+python-dotenv
 typing_extensions
 uvicorn
+langchain_core

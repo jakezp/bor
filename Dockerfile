@@ -16,7 +16,7 @@ ENV OPENSSL_ROOT_DIR=/opt/conda
 ################# BUILDING PYMGCLIENT ############################
 
 # Create a conda environment
-RUN conda create -n bor_env python=3.9.16
+RUN conda create -n bor_env python=3.12.11
 
 # Activate the conda environment
 SHELL ["conda", "run", "-n", "bor_env", "/bin/bash", "-c"]
@@ -49,8 +49,19 @@ RUN pip install setuptools wheel
 # Install the project dependencies
 RUN pip install --no-cache-dir -e . -vv
 
-# Needed for nltk to work
-RUN python -m nltk.downloader punkt
+# Preinstall NLTK data to avoid runtime downloads
+# - Always install 'punkt'
+# - Try 'punkt_tab' (newer NLTK may require it); ignore failure if unavailable
+RUN python - <<'PY'
+import nltk
+print('Downloading NLTK punkt...')
+nltk.download('punkt')
+try:
+    print('Attempting to download NLTK punkt_tab...')
+    nltk.download('punkt_tab')
+except Exception as e:
+    print('Skipping punkt_tab (not available or failed):', e)
+PY
 
 # Command to run the application
 ENTRYPOINT ["conda", \

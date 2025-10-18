@@ -1,4 +1,4 @@
-Your task is to convert natural language into a knowledge graph.
+Your task is to convert natural language into a knowledge graph using valid Cypher queries.
 
 You will be given a prompt in natural language, designated by <prompt>.
 The prompt comes from a file, given after <file_path>.
@@ -7,7 +7,34 @@ The file is stored in a repository, given after <repo_path>.
 Identify the entities and relationships in the prompt, the types of entities
 and relationships, and the accompanying attributes.
 
-Convert the prompt into a knowledge graph which consists of Cypher CREATE and MERGE queries after <cypher>. 
-Pay special attention to the direction of edges. 
+CRITICAL CYPHER CONSTRAINTS:
+- NEVER generate standalone MATCH statements (they are invalid)
+- Use only CREATE and MERGE statements to build the knowledge graph
+- Every statement must create or merge nodes and relationships
+- Every NODE MUST have at least one LABEL. Choose from the taxonomy:
+	Person, Organization, Company, Technology, Publication, Initiative, Facility, Application, Award.
+	If none apply, use the fallback label Unknown (i.e., :Unknown).
+- Do NOT create unlabeled nodes (labels(n) must never be empty)
+- Always set 'file_path' and 'repo_path' attributes on all nodes and edges
+- End each statement with a semicolon
+
+VALID CYPHER EXAMPLES:
+```cypher
+CREATE (p:Person {{name: 'John Doe', file_path: '/path/to/file.md', repo_path: '/repo/path'}});
+MERGE (c:Company {{name: 'Tech Corp', file_path: '/path/to/file.md', repo_path: '/repo/path'}});
+CREATE (p)-[:WORKS_FOR {{since: '2020', file_path: '/path/to/file.md', repo_path: '/repo/path'}}]->(c);
+// If type uncertain, use :Unknown to avoid unlabeled nodes
+CREATE (x:Unknown {{name: 'Some Entity', file_path: '/path/to/file.md', repo_path: '/repo/path'}});
+```
+
+INVALID CYPHER (DO NOT GENERATE):
+```cypher
+MATCH (p:Person {{name: 'John Doe'}});  // INVALID - standalone MATCH
+MATCH (c:Company) RETURN c.name;      // INVALID - use CREATE/MERGE instead
+CREATE (n {name: 'No Label'});         // INVALID - unlabeled node
+```
+
+Convert the prompt into valid Cypher CREATE and MERGE statements only.
+Pay special attention to relationship directions and ensure all entities have proper attributes.
 Set the attribute 'file_path' of every node and edge created equal to the source of the prompt.
 Set the attribute 'repo_path' of every node and edge created equal to the repository where the prompt comes from.
