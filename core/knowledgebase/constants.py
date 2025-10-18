@@ -21,6 +21,7 @@ BEDROCK_EMBEDDING_MODEL = os.environ.get("BEDROCK_EMBEDDING_MODEL", "amazon.tita
 # Model Parameters
 LLM_MODEL_TEMPERATURE = os.environ.get("LLM_MODEL_TEMPERATURE", "0.2")
 LLM_MODEL_TEMPERATURE = float(LLM_MODEL_TEMPERATURE)
+LLM_MAX_TOKENS = 8192
 
 # Memgraph Configuration
 MEMGRAPH_HOST = os.environ.get("MEMGRAPH_HOST", "127.0.0.1")
@@ -30,5 +31,8 @@ MEMGRAPH_PORT = int(MEMGRAPH_PORT)
 # Chroma Configuration
 CHROMA_DATA_DIR = os.environ.get("CHROMA_DATA_DIR")
 CHROMA_VECTOR_SPACE = os.environ.get("CHROMA_VECTOR_SPACE")
+
+# Prompts
+PROMPTS_DIR = os.path.join(os.path.dirname(__file__), 'prompts')
 
 MOCK = (os.environ.get("MOCK", 'False') == 'True')

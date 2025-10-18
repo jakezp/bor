@@ -20,3 +20,4 @@ pyproject_hooks
 python-dotenv
 typing_extensions
 uvicorn
+langchain_core

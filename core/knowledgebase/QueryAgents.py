@@ -62,10 +62,22 @@ class GeneralQueryAgent:
         return
 
     def _init_agent(self, tools: List[Tool]) -> None:
+        # Prefer a non-functions agent by default to avoid Bedrock 'functions: Extra inputs are not permitted'.
+        # Allow override via LLM_AGENT_TYPE env var (e.g., ZERO_SHOT_REACT_DESCRIPTION, STRUCTURED_CHAT_ZERO_SHOT_REACT_DESCRIPTION).
+        agent_env = os.environ.get("LLM_AGENT_TYPE", "ZERO_SHOT_REACT_DESCRIPTION").upper()
+        # Map a few friendly aliases
+        alias_map = {
+            "ZERO_SHOT": "ZERO_SHOT_REACT_DESCRIPTION",
+            "STRUCTURED_ZERO_SHOT": "STRUCTURED_CHAT_ZERO_SHOT_REACT_DESCRIPTION",
+            "FUNCTIONS": "OPENAI_FUNCTIONS",
+        }
+        agent_key = alias_map.get(agent_env, agent_env)
+        agent_type = getattr(AgentType, agent_key, AgentType.ZERO_SHOT_REACT_DESCRIPTION)
+
         self.agent = initialize_agent(
             tools,
             self.llm,
-            agent=AgentType.OPENAI_FUNCTIONS,
+            agent=agent_type,
             verbose=True,
             agent_kwargs=self.agent_kwargs,
             memory=self.memory

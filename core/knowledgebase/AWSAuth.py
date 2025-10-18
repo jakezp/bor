@@ -9,9 +9,17 @@ Implements authentication priority:
 import boto3
 import logging
 from typing import Optional
+from botocore.config import Config
 from core.knowledgebase import constants
 
 logger = logging.getLogger(__name__)
+if not logger.handlers:
+    # Avoid duplicate handlers in some runtimes
+    handler = logging.StreamHandler()
+    formatter = logging.Formatter('%(levelname)s:%(name)s:%(message)s')
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+logger.setLevel(logging.DEBUG)
 
 
 class AWSAuthenticator:
@@ -36,9 +44,15 @@ class AWSAuthenticator:
         """Get authenticated Bedrock Runtime client for inference."""
         if self._bedrock_runtime is None:
             session = self.get_session()
+            config = Config(
+                read_timeout=300,  # Set a 5-minute read timeout
+                connect_timeout=60,
+                retries={'max_attempts': 3}
+            )
             self._bedrock_runtime = session.client(
                 'bedrock-runtime',
-                region_name=constants.BEDROCK_REGION
+                region_name=constants.BEDROCK_REGION,
+                config=config
             )
         return self._bedrock_runtime
     
@@ -55,22 +69,22 @@ class AWSAuthenticator:
         
         # Priority 1: Bedrock API key (bearer token)
         if constants.AWS_BEARER_TOKEN_BEDROCK:
-            logger.info("Using Bedrock API key authentication")
+            logger.debug("Using Bedrock API key authentication")
             return self._create_session_with_bearer_token()
         
         # Priority 2: Named AWS profile
         elif constants.AWS_PROFILE:
-            logger.info(f"Using AWS profile: {constants.AWS_PROFILE}")
+            logger.debug(f"Using AWS profile: {constants.AWS_PROFILE}")
             return self._create_session_with_profile()
         
         # Priority 3: Explicit AWS credentials
         elif constants.AWS_ACCESS_KEY_ID and constants.AWS_SECRET_ACCESS_KEY:
-            logger.info("Using explicit AWS credentials")
+            logger.debug("Using explicit AWS credentials")
             return self._create_session_with_credentials()
         
         # Fallback: Default AWS configuration
         else:
-            logger.info("Using default AWS configuration (environment/instance profile)")
+            logger.debug("Using default AWS configuration (environment/instance profile)")
             return boto3.Session(region_name=constants.BEDROCK_REGION)
     
     def _create_session_with_bearer_token(self) -> boto3.Session:
